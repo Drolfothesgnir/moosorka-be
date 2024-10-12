@@ -44,7 +44,13 @@ class RecordList(MethodView):
     def get(self):
         skip = request.args.get("skip")
         limit = request.args.get("limit")
+        sort = request.args.get("sort", "last")
         query = RecordModel.query
+
+        if sort == "first":
+            query = query.order_by(RecordModel.created_at.asc())
+        else:
+            query = query.order_by(RecordModel.created_at.desc())
 
         if skip:
             query = query.offset(int(skip))
