@@ -6,3 +6,16 @@ services:
       - "5000:5000"
     volumes:
       - .:/app
+    depends_on:
+     - db
+    env_file:
+     - ./.env
+  db:
+    image: postgres
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=diary
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+volumes:
+  postgres_data:

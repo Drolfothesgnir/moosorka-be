@@ -4,11 +4,13 @@ from flask_smorest import Api
 from flask_cors import CORS
 from resources.record import blp as RecordBlueprint
 from db import db
+from dotenv import load_dotenv
 import models
 
 
 def create_app(db_url=None):
     app = Flask(__name__)
+    load_dotenv()
     CORS(app)
 
     app.config["PROPAGATE_EXCEPTIONS"] = True

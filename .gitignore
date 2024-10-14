@@ -1,5 +1,5 @@
 .flaskenv
-
+.env
 .venv
 
 instance
