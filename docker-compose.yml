@@ -7,9 +7,11 @@ services:
     volumes:
       - .:/app
     depends_on:
-     - db
+      - db
     env_file:
-     - ./.env
+      - ./.env
+    environment:
+      - FLASK_ENV=production  # Override to ensure production mode
   db:
     image: postgres
     environment:
