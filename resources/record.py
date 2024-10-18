@@ -1,7 +1,7 @@
 from flask.views import MethodView
 from flask import request
 from flask_smorest import Blueprint, abort
-from schemas import RecordSchema
+from schemas import RecordSchema, PaginatedRecordSchema
 from models import RecordModel
 from db import db
 from sqlalchemy.exc import SQLAlchemyError
@@ -40,11 +40,14 @@ class Record(MethodView):
 
 @blp.route("/record")
 class RecordList(MethodView):
-    @blp.response(200, RecordSchema(many=True))
+    @blp.response(200, PaginatedRecordSchema)
     def get(self):
-        skip = request.args.get("skip")
-        limit = request.args.get("limit")
+        # Get pagination parameters
+        page = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 10, type=int)
         sort = request.args.get("sort", "last")
+
+        # Query the records
         query = RecordModel.query
 
         if sort == "first":
@@ -52,12 +55,15 @@ class RecordList(MethodView):
         else:
             query = query.order_by(RecordModel.created_at.desc())
 
-        if skip:
-            query = query.offset(int(skip))
-        if limit:
-            query = query.limit(int(limit))
+        # Use Flask-SQLAlchemy's paginate() method
+        paginated_records = query.paginate(page=page, per_page=per_page)
 
-        return query.all()
+        # Return both the items and the total count
+        return {
+            "items": paginated_records.items,  # The records for the current page
+            "total": paginated_records.total,  # Total number of records
+            "has_next": paginated_records.has_next,
+        }
 
     @blp.arguments(RecordSchema)
     @blp.response(201, RecordSchema)
