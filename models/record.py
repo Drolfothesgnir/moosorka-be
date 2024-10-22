@@ -11,3 +11,4 @@ class RecordModel(db.Model):
         db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )
     updated_at = db.Column(db.DateTime, onupdate=lambda: datetime.now(timezone.utc))
+    pinned = db.Column(db.Boolean, default=False)

@@ -3,6 +3,7 @@ from flask import Flask
 from flask_smorest import Api
 from flask_cors import CORS
 from resources.record import blp as RecordBlueprint
+from flask_migrate import Migrate
 from db import db
 from dotenv import load_dotenv
 import models
@@ -30,9 +31,7 @@ def create_app(db_url=None):
         app.config["SQLALCHEMY_DATABASE_URI"] = db_url or os.getenv("DATABASE_URL")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)
-
-    with app.app_context():
-        db.create_all()
+    migrate = Migrate(app, db)
 
     api = Api(app)
     api.register_blueprint(RecordBlueprint)

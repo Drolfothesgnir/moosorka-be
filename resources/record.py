@@ -1,7 +1,7 @@
 from flask.views import MethodView
 from flask import request
 from flask_smorest import Blueprint, abort
-from schemas import RecordSchema, PaginatedRecordSchema
+from schemas import RecordSchema, PaginatedRecordSchema, RecordUpdateSchema
 from models import RecordModel
 from db import db
 from sqlalchemy.exc import SQLAlchemyError
@@ -23,14 +23,16 @@ class Record(MethodView):
 
         return {"message": "Record deleted."}
 
-    @blp.arguments(RecordSchema)
+    @blp.arguments(RecordUpdateSchema)
     @blp.response(200, RecordSchema)
     def put(self, record_data, record_id):
-        record = RecordModel.query.get(record_id)
-        if record:
+        record = RecordModel.query.get_or_404(record_id)
+
+        # Update only the fields present in the request
+        if "content" in record_data:
             record.content = record_data["content"]
-        else:
-            record = RecordModel(id=record_id, **record_data)
+        if "pinned" in record_data:
+            record.pinned = record_data["pinned"]
 
         db.session.add(record)
         db.session.commit()
@@ -76,3 +78,31 @@ class RecordList(MethodView):
             abort(500, message="An error occured while creating a record.")
 
         return record
+
+
+@blp.route("/record/pinned")
+class PinnedRecordList(MethodView):
+    @blp.response(200, PaginatedRecordSchema)
+    def get(self):
+        # Get pagination parameters
+        page = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 10, type=int)
+        sort = request.args.get("sort", "last")
+
+        # Query the records that are pinned
+        query = RecordModel.query.filter_by(pinned=True)
+
+        if sort == "first":
+            query = query.order_by(RecordModel.created_at.asc())
+        else:
+            query = query.order_by(RecordModel.created_at.desc())
+
+        # Use Flask-SQLAlchemy's paginate() method
+        paginated_records = query.paginate(page=page, per_page=per_page)
+
+        # Return both the items and the total count
+        return {
+            "items": paginated_records.items,  # The pinned records for the current page
+            "total": paginated_records.total,  # Total number of pinned records
+            "has_next": paginated_records.has_next,
+        }
