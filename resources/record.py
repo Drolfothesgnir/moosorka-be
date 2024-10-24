@@ -44,26 +44,42 @@ class Record(MethodView):
 class RecordList(MethodView):
     @blp.response(200, PaginatedRecordSchema)
     def get(self):
-        # Get pagination parameters
+        # Get pagination and sorting parameters
         page = request.args.get("page", 1, type=int)
         per_page = request.args.get("per_page", 10, type=int)
         sort = request.args.get("sort", "last")
+        pinned = request.args.get(
+            "pinned", type=str
+        )  # Treat pinned as a string initially
+        substring = request.args.get("s", type=str)
 
-        # Query the records
+        # Start with base query
         query = RecordModel.query
 
+        # Handle `pinned` filter (convert 'true'/'false' string to boolean)
+        if pinned is not None:
+            pinned_value = (
+                pinned.lower() == "true"
+            )  # Converts 'true' to True, 'false' to False
+            query = query.filter_by(pinned=pinned_value)
+
+        # Handle substring search in the content
+        if substring:
+            query = query.filter(RecordModel.content.ilike(f"%{substring}%"))
+
+        # Handle sorting
         if sort == "first":
             query = query.order_by(RecordModel.created_at.asc())
         else:
             query = query.order_by(RecordModel.created_at.desc())
 
-        # Use Flask-SQLAlchemy's paginate() method
+        # Paginate the results
         paginated_records = query.paginate(page=page, per_page=per_page)
 
-        # Return both the items and the total count
+        # Return the paginated results
         return {
-            "items": paginated_records.items,  # The records for the current page
-            "total": paginated_records.total,  # Total number of records
+            "items": paginated_records.items,
+            "total": paginated_records.total,
             "has_next": paginated_records.has_next,
         }
 
@@ -78,31 +94,3 @@ class RecordList(MethodView):
             abort(500, message="An error occured while creating a record.")
 
         return record
-
-
-@blp.route("/record/pinned")
-class PinnedRecordList(MethodView):
-    @blp.response(200, PaginatedRecordSchema)
-    def get(self):
-        # Get pagination parameters
-        page = request.args.get("page", 1, type=int)
-        per_page = request.args.get("per_page", 10, type=int)
-        sort = request.args.get("sort", "last")
-
-        # Query the records that are pinned
-        query = RecordModel.query.filter_by(pinned=True)
-
-        if sort == "first":
-            query = query.order_by(RecordModel.created_at.asc())
-        else:
-            query = query.order_by(RecordModel.created_at.desc())
-
-        # Use Flask-SQLAlchemy's paginate() method
-        paginated_records = query.paginate(page=page, per_page=per_page)
-
-        # Return both the items and the total count
-        return {
-            "items": paginated_records.items,  # The pinned records for the current page
-            "total": paginated_records.total,  # Total number of pinned records
-            "has_next": paginated_records.has_next,
-        }
