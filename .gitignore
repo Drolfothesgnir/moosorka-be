@@ -7,3 +7,4 @@ instance
 */__pycache__/*
 __pycache__/
 
+*.sql
