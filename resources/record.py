@@ -94,3 +94,10 @@ class RecordList(MethodView):
             abort(500, message="An error occured while creating a record.")
 
         return record
+
+
+@blp.route("/record/dump")
+class RecordDump(MethodView):
+    @blp.response(200, RecordSchema(many=True))
+    def get(self):
+        return RecordModel.query.order_by(RecordModel.created_at.asc())
